@@ -37,12 +37,16 @@ uv run --uri 'tcp://0.0.0.0:10300'
 
 The `--model-en` or `--model-multilingual` can also be a HuggingFace model but see [onnx-asr](https://github.com/istupakov/onnx-asr?tab=readme-ov-file#supported-model-names) for details
 
-**NOTE**: Models are downloaded temporarily to the `HF_HUB_CACHE` directory, which defaults to `~/.cache/huggingface/hub`.
-You may need to adjust this environment variable when using a read-only root filesystem (e.g., `HF_HUB_CACHE=/tmp`).
+**NOTE**: Models are downloaded under `ONNX_ASR_MODEL_DIR` (default `/data` in Docker images), with a per-model subdirectory.
+You may need to adjust this when using a read-only root filesystem (e.g., `ONNX_ASR_MODEL_DIR=/tmp`).
+TensorRT engine cache remains under `/cache/tensorrt` when using the gpu-trt image.
+
 
 ## Configuration
 
 - Quantization: the parakeet model supports int8, but make sure to compare as performance may or may not improve.
+- Model cache directory: set `--model-dir` or `ONNX_ASR_MODEL_DIR` (default `/data`, per-model subdirectories).
+
 
 ## Running tooling
 Install [mise](https://mise.jdx.dev/) and use `mise run` to get a list of tasks to test, format, lint, run.

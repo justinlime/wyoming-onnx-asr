@@ -1,4 +1,4 @@
-﻿# An example using multi-stage image builds to create a final image without uv.
+# An example using multi-stage image builds to create a final image without uv.
 
 # First, build the application in the `/app` directory.
 # See `Dockerfile` for details.
@@ -45,7 +45,8 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 VOLUME /data
 VOLUME /cache
-ENV HF_HUB_CACHE="/data"
+ENV ONNX_ASR_MODEL_DIR="/data"
+
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/app/.venv/lib/python3.12/site-packages/tensorrt_libs/
 ENV ORT_TENSORRT_ENGINE_CACHE_ENABLE=1
 ENV ORT_TENSORRT_CACHE_PATH=/cache/tensorrt

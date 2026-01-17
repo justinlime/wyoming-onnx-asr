@@ -1,4 +1,4 @@
-﻿# An example using multi-stage image builds to create a final image without uv.
+# An example using multi-stage image builds to create a final image without uv.
 
 # First, build the application in the `/app` directory.
 # See `Dockerfile` for details.
@@ -42,6 +42,7 @@ COPY wyoming_onnx_asr/ /app/wyoming_onnx_asr/
 ENV PATH="/app/.venv/bin:$PATH"
 
 VOLUME /data
-ENV HF_HUB_CACHE="/data"
+ENV ONNX_ASR_MODEL_DIR="/data"
+
 ENTRYPOINT ["python", "-m", "wyoming_onnx_asr"]
 CMD [ "--uri", "tcp://*:10300", "--model-en", "nemo-parakeet-tdt-0.6b-v2" ]

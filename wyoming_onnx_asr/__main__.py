@@ -2,10 +2,12 @@
 import argparse
 import asyncio
 import logging
+import os
 import sys
 from functools import partial
 
 import onnx_asr
+
 import onnxruntime
 from wyoming.info import AsrModel, AsrProgram, Attribution, Info
 from wyoming.server import AsyncServer
@@ -16,7 +18,15 @@ from .handler import NemoAsrEventHandler
 _LOGGER = logging.getLogger(__name__)
 
 
+def _resolve_model_path(model_dir: str | None, model_name: str) -> str | None:
+    if not model_dir:
+        return None
+    safe_name = model_name.replace("/", "_").replace(":", "_")
+    return os.path.join(model_dir, safe_name)
+
+
 async def main() -> None:
+
     """Main entry point."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-en", help="English model name")
@@ -26,11 +36,17 @@ async def main() -> None:
     )
     parser.add_argument("--uri", required=True, help="unix:// or tcp://")
     parser.add_argument(
+        "--model-dir",
+        default=os.environ.get("ONNX_ASR_MODEL_DIR", "/data"),
+        help="Directory to download/cache model files",
+    )
+    parser.add_argument(
         "--device",
         default="cpu",
         choices=["cpu", "gpu", "gpu-trt"],
         help="Device to use for inference (default: cpu)",
     )
+
     parser.add_argument("--debug", action="store_true", help="Log DEBUG messages")
     parser.add_argument(
         "--log-format", default=logging.BASIC_FORMAT, help="Format for log messages"
@@ -52,6 +68,8 @@ async def main() -> None:
     # Store resolved values in local variables
     eng_model_name = args.model_en
     multi_model_name = args.model_multilingual
+    model_dir = args.model_dir
+
 
     logging.basicConfig(
         level=logging.DEBUG if args.debug else logging.INFO, format=args.log_format
@@ -88,7 +106,8 @@ async def main() -> None:
                     url="https://github.com/istupakov/onnx-asr",
                 ),
                 installed=True,
-                languages=_LANGUAGE_CODES,
+                languages=list(_LANGUAGE_CODES),
+
                 version="0.1",
             )
         )
@@ -126,19 +145,26 @@ async def main() -> None:
 
     # Load multiple models and build container
     models = {}
+    base_load_kwargs = {
+        "providers": providers,
+        "sess_options": session_options,
+        "quantization": args.quantization,
+    }
 
     # For each non-None model name: Call onnx_asr.load_model(...) exactly as before
+
     if eng_model_name is not None:
         _LOGGER.info(
             "Loading English model %s, %s ...", eng_model_name, args.quantization
         )
         try:
+            eng_model_path = _resolve_model_path(model_dir, eng_model_name)
             eng_model = onnx_asr.load_model(
                 model=eng_model_name,
-                providers=providers,
-                sess_options=session_options,
-                quantization=args.quantization,
+                path=eng_model_path,
+                **base_load_kwargs,
             )
+
             models["en"] = eng_model
         except Exception as e:
             _LOGGER.error(
@@ -154,12 +180,13 @@ async def main() -> None:
             "Loading multilingual model %s, %s ...", multi_model_name, args.quantization
         )
         try:
+            multi_model_path = _resolve_model_path(model_dir, multi_model_name)
             multi_model = onnx_asr.load_model(
                 model=multi_model_name,
-                providers=providers,
-                sess_options=session_options,
-                quantization=args.quantization,
+                path=multi_model_path,
+                **base_load_kwargs,
             )
+
             models["multi"] = multi_model
         except Exception as e:
             _LOGGER.error(
